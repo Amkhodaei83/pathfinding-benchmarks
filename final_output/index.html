@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinding Edu-Analytics</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- BACKGROUND ANIMATION -->
+    <div class="orb-container">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- MOBILE HEADER -->
+    <div class="mobile-header">
+        <div class="mobile-brand">Analytics Pro</div>
+        <button class="mobile-menu-btn" onclick="app.toggleSidebar()">☰</button>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-dock">
+        <a href="ml_report.html" class="control-btn" title="go to the AI report page">AI</a>
+        <button class="control-btn" onclick="app.toggleTheme()" id="themeBtn">☀</button>
+        <button class="control-btn" onclick="app.toggleLang()" id="langBtn">FA</button>
+    </div>
+
+    <div class="layout-container">
+        
+        <!-- SIDEBAR -->
+        <aside id="mainSidebar">
+            <button class="close-sidebar-btn" onclick="app.toggleSidebar()">×</button>
+            
+            <div class="profile-credit">AMIR HOSSEIN KHODAEI</div>
+            <hr class="sidebar-divider">
+
+            <h3 class="sidebar-heading" data-i18n="sidebar_title">Control Panel</h3>
+            
+            <div class="filter-group">
+                <label data-i18n="lbl_map_size">Map Size</label>
+                <select id="filterSize" onchange="app.runAnalysis()" aria-label="Filter Map Size">
+                    <option value="ALL" data-i18n="opt_all">All Sizes</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_difficulty">Difficulty</label>
+                <select id="filterDiff" onchange="app.runAnalysis()" aria-label="Filter Difficulty">
+                    <option value="ALL" data-i18n="opt_all">All Difficulties</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_algorithm">Algorithm</label>
+                <select id="filterAlgo" onchange="app.runAnalysis()" aria-label="Filter Algorithm">
+                    <option value="ALL" data-i18n="opt_all">All Algorithms</option>
+                    <option value="AStar">A* (Infinite Mem)</option>
+                    <option value="SMAStar">SMA* (Limited Mem)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_heuristic_metric">Chart Metric</label>
+                <select id="metricHeuristic" onchange="app.updateHeuristicChart()" aria-label="Select Chart Metric">
+                    <option value="NodesExpanded" data-i18n="opt_nodes">Nodes Expanded (Efficiency)</option>
+                    <option value="TimeMs" data-i18n="opt_time">Time (Speed)</option>
+                    <option value="CostNum" data-i18n="opt_cost">Path Cost</option>
+                </select>
+            </div>
+
+            <button class="btn-reset" onclick="app.resetFilters()" data-i18n="btn_reset">Reset Filters</button>
+            
+            <button class="btn-demo" onclick="app.toggleModal('heuristicModal')" data-i18n="btn_encyclopedia">📖 Standard Heuristics Guide</button>
+
+            <div class="educational-sidebar">
+                <h3 data-i18n="edu_glossary_title">📚 Mini Glossary</h3>
+                <ul class="glossary-list">
+                    <li><strong data-i18n="term_astar">A*:</strong> <span data-i18n="def_astar">Shortest path, high memory.</span></li>
+                    <li><strong data-i18n="term_sma">SMA*:</strong> <span data-i18n="def_sma">Memory-bounded, prunes nodes.</span></li>
+                    <li><strong data-i18n="term_ml">ML:</strong> <span data-i18n="def_ml">Machine Learned Heuristic.</span></li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" onclick="app.toggleSidebar()"></div>
+
+        <!-- MAIN CONTENT -->
+        <main>
+            <div class="chapter-card intro-card">
+                <h1 data-i18n="report_title">Pathfinding Algorithm Analysis</h1>
+                <p data-i18n="report_subtitle">A comparative study of A* vs SMA*.</p>
+                <div class="grid">
+                    <div class="card"><h4 data-i18n="kpi_total">Total Runs</h4><div class="kpi-value" id="kpiTotal">0</div></div>
+                    <div class="card"><h4 data-i18n="kpi_success">Success Rate</h4><div class="kpi-value" id="kpiSuccess">0%</div></div>
+                    <div class="card"><h4 data-i18n="kpi_time">Avg Time</h4><div class="kpi-value" id="kpiTime">0 ms</div></div>
+                    <div class="card"><h4 data-i18n="kpi_optimal">Optimality</h4><div class="kpi-value" id="kpiOptimal">-</div></div>
+                </div>
+            </div>
+
+            <div id="statusOverlay" class="chapter-card" style="text-align: center;">
+                <h2 id="statusTitle">Loading Data...</h2>
+                <div class="loader"></div>
+                <p id="statusMsg">Processing benchmark_results.csv...</p>
+                <input type="file" id="fallbackInput" class="hidden-input" accept=".csv">
+                <label for="fallbackInput" id="fallbackLabel" class="btn-demo" style="display:none;" data-i18n="btn_manual_load">Select Data.csv Manually</label>
+            </div>
+
+            <!-- 1. EFFICIENCY -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_1_title">1. Heuristic Efficiency</h2>
+                <p data-i18n="chart_1_desc">Comparing how "smart" different heuristics are.</p>
+                <div id="chartHeuristic" class="plot-area"></div>
+                <div class="note"><strong data-i18n="note_title">🎓 Educational Note:</strong> <span data-i18n="note_1_text">...</span></div>
+            </div>
+
+            <!-- 2. MEMORY -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_2_title">2. The Memory Wall (SMA*)</h2>
+                <p data-i18n="chart_2_desc">Visualizing the "Thrashing" phenomenon.</p>
+                <div id="chartMemory" class="plot-area"></div>
+                <div class="note"><strong data-i18n="note_title">🎓 Educational Note:</strong> <span data-i18n="note_2_text">...</span></div>
+            </div>
+
+            <!-- 3. FAILURE -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_3_title">3. Failure Analysis</h2>
+                <div id="chartFailure" class="plot-area"></div>
+            </div>
+
+            <!-- 4. TRADEOFF -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_4_title">4. Time vs. Space Tradeoff</h2>
+                <div id="chartTradeoff" class="plot-area"></div>
+                <div class="note"><strong data-i18n="note_title">🎓 Educational Note:</strong> <span data-i18n="note_4_text">...</span></div>
+            </div>
+
+            <!-- 5. NEW ML SECTION (BONUS) -->
+            <div class="chapter-card" id="mlSection" style="display:none; border-color: #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 data-i18n="chart_5_title" style="color:#a78bfa">5. AI vs Standard (Bonus)</h2>
+                    <span style="background:#8b5cf6; color:white; padding:2px 8px; border-radius:4px; font-size:0.8rem;">MACHINE LEARNING</span>
+                </div>
+                <p data-i18n="chart_5_desc">Did the trained model perform better than standard Math?</p>
+                
+                <div id="chartMLComparison" class="plot-area"></div>
+                
+                <div class="grid" style="margin-top:20px;">
+                    <div class="card" style="border-color:#8b5cf6">
+                        <h4 data-i18n="kpi_ml_reduction">Nodes Reduced</h4>
+                        <div class="kpi-value" id="kpiMLReduction" style="color:#a78bfa">0%</div>
+                    </div>
+                    <div class="card" style="border-color:#8b5cf6">
+                        <h4 data-i18n="kpi_ml_accuracy">Cost Accuracy</h4>
+                        <div class="kpi-value" id="kpiMLAccuracy" style="color:#a78bfa">0%</div>
+                    </div>
+                </div>
+
+                <div class="note" style="border-right-color: #8b5cf6; background: rgba(139, 92, 246, 0.05);">
+                    <strong data-i18n="note_title">🎓 Educational Note:</strong> 
+                    <span data-i18n="note_5_text">The ML model 'learned' that Mud and Traffic increase cost. Standard Manhattan assumes cost is always 1. The chart above shows how many fewer nodes the AI examined to find the same goal.</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- HEURISTIC ENCYCLOPEDIA MODAL -->
+    <div id="heuristicModal" class="modal-backdrop" onclick="if(event.target === this) app.toggleModal('heuristicModal')">
+        <div class="modal-window" style="max-width: 800px;">
+            <button class="modal-close" onclick="app.toggleModal('heuristicModal')">×</button>
+            <h2 data-i18n="modal_title" style="border-bottom: 2px solid var(--primary); padding-bottom:10px;">Standard Heuristics Guide</h2>
+            
+            <div class="modal-scroll-area">
+                <h3 class="modal-cat" data-i18n="cat_admissible">A. Admissible Heuristics (Guarantee Optimal Path)</h3>
+                
+                <div class="h-item">
+                    <h4>SCALED_MANHATTAN</h4>
+                    <code class="math">h(n) = 0.5 × (|x₁ - x₂| + |y₁ - y₂|)</code>
+                    <p data-i18n="desc_scaled_manhattan">Manhattan distance scaled by 0.5 (the minimum cost in the map). This is the <strong>ground truth</strong> heuristic used to establish optimal costs. It's admissible because it never overestimates the true cost.</p>
+                    <p><strong>Use Case:</strong> Baseline for comparison, guarantees shortest path.</p>
+                </div>
+
+                <div class="h-item">
+                    <h4>SCALED_EUCLIDEAN</h4>
+                    <code class="math">h(n) = 0.5 × √((x₁ - x₂)² + (y₁ - y₂)²)</code>
+                    <p data-i18n="desc_scaled_euclidean">Straight-line distance (as the crow flies) scaled by 0.5. More accurate than Manhattan for diagonal movement, but computationally more expensive due to square root calculation.</p>
+                    <p><strong>Use Case:</strong> When diagonal movement is allowed or when geometric accuracy matters.</p>
+                </div>
+
+                <div class="h-item">
+                    <h4>SCALED_CHEBYSHEV</h4>
+                    <code class="math">h(n) = 0.5 × max(|x₁ - x₂|, |y₁ - y₂|)</code>
+                    <p data-i18n="desc_scaled_chebyshev">Takes the maximum of horizontal and vertical distances. Useful for 8-directional movement (including diagonals). Always ≤ Manhattan distance.</p>
+                    <p><strong>Use Case:</strong> 8-directional pathfinding, king's move in chess.</p>
+                </div>
+
+                <div class="h-item">
+                    <h4>DIJKSTRA_ZERO</h4>
+                    <code class="math">h(n) = 0</code>
+                    <p data-i18n="desc_dijkstra">Zero heuristic - essentially turns A* into Dijkstra's algorithm. Explores uniformly in all directions, guaranteeing optimality but with maximum exploration.</p>
+                    <p><strong>Use Case:</strong> When no good heuristic is available, or for comparison purposes.</p>
+                </div>
+
+                <h3 class="modal-cat" data-i18n="cat_inadmissible">B. Inadmissible Heuristics (Fast but Not Guaranteed Optimal)</h3>
+
+                <div class="h-item" style="border-left: 3px solid #f59e0b;">
+                    <h4>UNSCALED_MANHATTAN</h4>
+                    <code class="math">h(n) = |x₁ - x₂| + |y₁ - y₂|</code>
+                    <p data-i18n="desc_unscaled_manhattan">Standard Manhattan distance without scaling. Assumes all cells cost 1.0, which may overestimate when shortcuts (cost 0.5) exist. Can be faster but may miss optimal paths.</p>
+                    <p><strong>Use Case:</strong> When speed is more important than optimality.</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #f59e0b;">
+                    <h4>AVG_COST_MANHATTAN</h4>
+                    <code class="math">h(n) = 4.1 × (|x₁ - x₂| + |y₁ - y₂|)</code>
+                    <p data-i18n="desc_avg_cost">Uses average cost (≈4.1) of all terrain types. Aggressive heuristic that may overestimate, leading to faster but potentially suboptimal paths.</p>
+                    <p><strong>Use Case:</strong> When you want to bias towards faster exploration.</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #f59e0b;">
+                    <h4>MANHATTAN_SQUARED</h4>
+                    <code class="math">h(n) = (|x₁ - x₂| + |y₁ - y₂|)²</code>
+                    <p data-i18n="desc_manhattan_squared">Squared Manhattan distance. Heavily penalizes longer distances, making the algorithm prefer shorter paths. Inadmissible for most cost functions.</p>
+                    <p><strong>Use Case:</strong> When you want to strongly prefer shorter paths.</p>
+                </div>
+
+                <h3 class="modal-cat" data-i18n="cat_advanced">C. Advanced & Tie-Breaking Heuristics</h3>
+
+                <div class="h-item" style="border-left: 3px solid #22c55e;">
+                    <h4>CROSS_PRODUCT</h4>
+                    <code class="math">h(n) = Scaled_Manhattan + 0.001 × Cross_Product</code>
+                    <p data-i18n="desc_cross_product">Adds a small tie-breaking term based on cross product of vectors. Helps break ties when multiple paths have the same f-cost, preferring paths that stay closer to the straight line from start to goal.</p>
+                    <p><strong>Use Case:</strong> When you want more consistent, straighter paths.</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #22c55e;">
+                    <h4>COST_AWARE</h4>
+                    <code class="math">h(n) = Scaled_Manhattan × (0.9 if shortcut, 1.1 if swamp, else 1.0)</code>
+                    <p data-i18n="desc_cost_aware">Adapts based on the target cell's cost. Reduces heuristic for shortcuts (pulls towards them) and increases for swamps (pushes away). Slightly inadmissible but often finds better paths.</p>
+                    <p><strong>Use Case:</strong> When terrain costs vary significantly and you want to exploit shortcuts.</p>
+                </div>
+
+                <div style="margin-top: 20px; padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-left: 4px solid #8b5cf6;">
+                    <h4 style="color: #8b5cf6; margin-top: 0;">💡 Key Concepts</h4>
+                    <p><strong>Admissible:</strong> Never overestimates true cost. Guarantees optimal (shortest) path.</p>
+                    <p><strong>Inadmissible:</strong> May overestimate. Faster but may find suboptimal paths.</p>
+                    <p><strong>Scaled:</strong> Multiplied by 0.5 to account for minimum terrain cost (shortcuts).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

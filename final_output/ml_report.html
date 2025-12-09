@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI vs Standard Heuristics Analysis</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    
+    <!-- Shared Styles -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Specific Styles for ML Highlight -->
+    <style>
+        .highlight-ml { color: #8b5cf6; font-weight: bold; }
+        .ml-border { border-left: 4px solid #8b5cf6; }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND ANIMATION -->
+    <div class="orb-container">
+        <div class="orb orb-1" style="background: #8b5cf6;"></div> <!-- Purple for AI -->
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- MOBILE HEADER -->
+    <div class="mobile-header">
+        <div class="mobile-brand">AI Analytics</div>
+        <button class="mobile-menu-btn" onclick="app.toggleSidebar()">☰</button>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-dock">
+        <a href="index.html" class="control-btn" title="Back to Main Report">↩</a>
+        <button class="control-btn" onclick="app.toggleTheme()" id="themeBtn">☀</button>
+        <button class="control-btn" onclick="app.toggleLang()" id="langBtn">FA</button>
+    </div>
+
+    <div class="layout-container">
+        
+        <!-- SIDEBAR -->
+        <aside id="mainSidebar">
+            <button class="close-sidebar-btn" onclick="app.toggleSidebar()">×</button>
+            
+            <div class="profile-credit">AMIR HOSSEIN KHODAEI</div>
+            <hr class="sidebar-divider">
+
+            <h3 class="sidebar-heading" data-i18n="sidebar_title">AI Control Panel</h3>
+            
+            <div class="filter-group">
+                <label data-i18n="lbl_map_size">Map Size</label>
+                <select id="filterSize" onchange="app.runAnalysis()">
+                    <option value="ALL" data-i18n="opt_all">All Sizes</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_difficulty">Difficulty</label>
+                <select id="filterDiff" onchange="app.runAnalysis()">
+                    <option value="ALL" data-i18n="opt_all">All Difficulties</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_ml_model">Select ML Model</label>
+                <select id="filterMLModel" onchange="app.runAnalysis()">
+                    <option value="ALL">All ML Models</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label data-i18n="lbl_compare_vs">Compare AI Against</label>
+                <select id="filterCompare" onchange="app.runAnalysis()">
+                    <option value="SCALED_MANHATTAN">SCALED_MANHATTAN (Ground Truth)</option>
+                </select>
+            </div>
+
+            <button class="btn-reset" onclick="app.resetFilters()" data-i18n="btn_reset">Reset Filters</button>
+            
+            <button class="btn-demo" onclick="app.toggleModal('mlHeuristicModal')" data-i18n="btn_ml_guide" style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); border-color: #8b5cf6;">🤖 ML Heuristics Guide</button>
+            
+            <div class="educational-sidebar ml-border">
+                <h3 data-i18n="edu_ml_title">🤖 AI Insight</h3>
+                <p class="note" style="background:transparent; padding:0; border:none; color: var(--text-muted); font-size: 0.9rem;">
+                    <span data-i18n="edu_ml_desc">The Machine Learning heuristic uses Linear Regression to predict the cost of a path before exploring it. It looks at mud, walls, and distance.</span>
+                </p>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" onclick="app.toggleSidebar()"></div>
+
+        <!-- MAIN CONTENT -->
+        <main>
+            <div class="chapter-card intro-card" style="border-top-color: #8b5cf6;">
+                <h1 data-i18n="report_title">AI Heuristic Performance Report</h1>
+                <p data-i18n="report_subtitle">Deep dive into Machine Learning vs. Standard Mathematical Heuristics.</p>
+                
+                <div class="grid">
+                    <div class="card"><h4 data-i18n="kpi_ml_dominance">AI Win Rate</h4><div class="kpi-value" id="kpiWinRate" style="color:#a78bfa">0%</div></div>
+                    <div class="card"><h4 data-i18n="kpi_node_reduction">Avg Work Reduced</h4><div class="kpi-value" id="kpiReduction" style="color:#22c55e">0%</div></div>
+                    <div class="card"><h4 data-i18n="kpi_time_overhead">Time Overhead</h4><div class="kpi-value" id="kpiTimeOverhead" style="color:#f59e0b">0 ms</div></div>
+                    <div class="card"><h4 data-i18n="kpi_accuracy">Cost Accuracy</h4><div class="kpi-value" id="kpiAccuracy">-</div></div>
+                </div>
+            </div>
+
+            <div id="statusOverlay" class="chapter-card" style="text-align: center;">
+                <div class="loader"></div>
+                <p id="loadingStatus">Loading benchmark_results.csv...</p>
+                <input type="file" id="fallbackInput" class="hidden-input" accept=".csv">
+                <label for="fallbackInput" id="manualLabel" class="btn-demo" style="display:none; margin: 10px auto;">📂 Select Data.csv</label>
+            </div>
+
+            <!-- 1. NODES EXPANDED (EFFICIENCY) -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_1_title">1. Search Efficiency (Nodes Expanded)</h2>
+                <p data-i18n="chart_1_desc">Does the AI guide the robot more directly to the goal?</p>
+                <div id="chartEfficiency" class="plot-area"></div>
+                <div class="note ml-border">
+                    <strong data-i18n="note_title">🎓 Analysis:</strong> 
+                    <span data-i18n="note_1_text">If the Purple bar is lower, the AI "knew" where to go. It avoided exploring dead-ends by predicting costs accurately based on the map's obstacles.</span>
+                </div>
+            </div>
+
+            <!-- 2. DIRECT HEAD-TO-HEAD -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_2_title">2. Head-to-Head: AI vs Standard</h2>
+                <p data-i18n="chart_2_desc">Every point is a map. Points below the line mean AI was better.</p>
+                <div id="chartScatter" class="plot-area"></div>
+            </div>
+
+            <!-- 3. TIME COMPLEXITY -->
+            <div class="chapter-card">
+                <h2 data-i18n="chart_3_title">3. The Cost of Thinking (Time Overhead)</h2>
+                <p data-i18n="chart_3_desc">AI calculates a formula per node. Is it too slow?</p>
+                <div id="chartTime" class="plot-area"></div>
+                <div class="note ml-border" style="border-color: #f59e0b;">
+                    <strong data-i18n="note_title">🎓 Trade-off:</strong> 
+                    <span data-i18n="note_3_text">The AI reduces the number of steps (Nodes), but each step takes longer to calculate (Math). The chart above checks if the net result is faster or slower.</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ML HEURISTIC GUIDE MODAL -->
+    <div id="mlHeuristicModal" class="modal-backdrop" onclick="if(event.target === this) app.toggleModal('mlHeuristicModal')">
+        <div class="modal-window" style="max-width: 800px;">
+            <button class="modal-close" onclick="app.toggleModal('mlHeuristicModal')">×</button>
+            <h2 data-i18n="ml_modal_title" style="border-bottom: 2px solid #8b5cf6; padding-bottom:10px; color: #8b5cf6;">🤖 Machine Learning Heuristics Guide</h2>
+            
+            <div class="modal-scroll-area">
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-left: 4px solid #8b5cf6;">
+                    <h4 style="color: #8b5cf6; margin-top: 0;" data-i18n="ml_intro_title">What is a Machine Learning Heuristic?</h4>
+                    <p data-i18n="ml_intro_desc">Instead of using fixed mathematical formulas, ML heuristics learn from data. They analyze thousands of solved maps to discover patterns: "Mud increases cost", "Shortcuts are valuable", etc. The model then predicts path costs based on these learned patterns.</p>
+                </div>
+
+                <h3 class="modal-cat" style="color: #8b5cf6;" data-i18n="ml_linear_title">Linear Models (Regression-Based)</h3>
+
+                <div class="h-item" style="border-left: 3px solid #8b5cf6;">
+                    <h4>LinearRegression</h4>
+                    <code class="math">h(n) = w₁×Manhattan + w₂×Euclidean + w₃×%Maintenance + w₄×%Traffic + w₅×%Shortcut + w₆×%Wall + bias</code>
+                    <p data-i18n="desc_linear_regression">Standard linear regression. Learns optimal weights for each feature through least squares minimization. Simple, interpretable, and fast. Good baseline for ML heuristics.</p>
+                    <p><strong>Pros:</strong> Fast, interpretable, no overfitting risk</p>
+                    <p><strong>Cons:</strong> Assumes linear relationships only</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #8b5cf6;">
+                    <h4>Ridge</h4>
+                    <code class="math">Same as LinearRegression + L2 regularization (λ∑w²)</code>
+                    <p data-i18n="desc_ridge">Linear regression with L2 regularization. Penalizes large weights to prevent overfitting. Useful when you have many features or multicollinearity issues.</p>
+                    <p><strong>Pros:</strong> Prevents overfitting, handles multicollinearity</p>
+                    <p><strong>Cons:</strong> Slightly slower, all features retained</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #8b5cf6;">
+                    <h4>Lasso</h4>
+                    <code class="math">Same as LinearRegression + L1 regularization (λ∑|w|)</code>
+                    <p data-i18n="desc_lasso">Linear regression with L1 regularization. Can set some weights to exactly zero, performing automatic feature selection. Useful for identifying which features matter most.</p>
+                    <p><strong>Pros:</strong> Feature selection, sparse models</p>
+                    <p><strong>Cons:</strong> May remove important features if λ is too high</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #8b5cf6;">
+                    <h4>ElasticNet</h4>
+                    <code class="math">Combines L1 + L2 regularization</code>
+                    <p data-i18n="desc_elasticnet">Combines benefits of both Ridge and Lasso. Uses both L1 and L2 penalties. Good balance between feature selection and stability. Often performs best in practice.</p>
+                    <p><strong>Pros:</strong> Best of both worlds, robust</p>
+                    <p><strong>Cons:</strong> More hyperparameters to tune</p>
+                </div>
+
+                <div class="h-item" style="border-left: 3px solid #8b5cf6;">
+                    <h4>Polynomial2</h4>
+                    <code class="math">Includes squared terms: x², xy interactions</code>
+                    <p data-i18n="desc_polynomial2">Polynomial regression of degree 2. Captures non-linear relationships and feature interactions (e.g., "Manhattan × Traffic density"). More expressive than linear models.</p>
+                    <p><strong>Pros:</strong> Captures non-linear patterns, interactions</p>
+                    <p><strong>Cons:</strong> More complex, can overfit, slower</p>
+                </div>
+
+                <h3 class="modal-cat" style="color: #8b5cf6;" data-i18n="ml_neural_title">Neural Network Model</h3>
+
+                <div class="h-item" style="border-left: 3px solid #a78bfa;">
+                    <h4>MLP (Multi-Layer Perceptron)</h4>
+                    <code class="math">3-layer neural network: Input → Hidden1 → Hidden2 → Output</code>
+                    <p data-i18n="desc_mlp">Deep learning model with multiple hidden layers. Can learn complex non-linear relationships and feature interactions automatically. Most expressive but also most complex.</p>
+                    <p><strong>Architecture:</strong> 6 inputs → 32 hidden → 16 hidden → 1 output</p>
+                    <p><strong>Pros:</strong> Highly expressive, learns complex patterns</p>
+                    <p><strong>Cons:</strong> Slower, harder to interpret, risk of overfitting</p>
+                </div>
+
+                <h3 class="modal-cat" style="color: #8b5cf6;" data-i18n="ml_features_title">Input Features</h3>
+                <div style="padding: 15px; background: rgba(139, 92, 246, 0.05); border-radius: 8px;">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin: 8px 0;"><strong>Manhattan Distance:</strong> <span data-i18n="feat_manhattan">Grid distance to goal</span></li>
+                        <li style="margin: 8px 0;"><strong>Euclidean Distance:</strong> <span data-i18n="feat_euclidean">Straight-line distance to goal</span></li>
+                        <li style="margin: 8px 0;"><strong>% Maintenance:</strong> <span data-i18n="feat_maintenance">Percentage of map with maintenance zones (cost 5)</span></li>
+                        <li style="margin: 8px 0;"><strong>% High Traffic:</strong> <span data-i18n="feat_traffic">Percentage of map with high traffic (cost 10)</span></li>
+                        <li style="margin: 8px 0;"><strong>% Shortcut:</strong> <span data-i18n="feat_shortcut">Percentage of map with shortcuts (cost 0.5)</span></li>
+                        <li style="margin: 8px 0;"><strong>% Wall:</strong> <span data-i18n="feat_wall">Percentage of map with walls (impassable)</span></li>
+                    </ul>
+                </div>
+
+                <div style="margin-top: 20px; padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-left: 4px solid #8b5cf6;">
+                    <h4 style="color: #8b5cf6; margin-top: 0;" data-i18n="ml_training_title">💡 Training Process</h4>
+                    <p data-i18n="ml_training_desc">Models are trained on 1000+ solved maps. Each map provides features (terrain percentages, distances) and the label (optimal cost found by SCALED_MANHATTAN). The model learns to predict optimal costs for new maps based on these patterns.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="ml_script.js"></script>
+</body>
+</html>
