@@ -19,6 +19,8 @@ The project generates detailed CSV logs which are fed into a modern, responsive 
 *   **Efficiency Charts:** Compare Nodes Expanded vs. Path Optimality.
 *   **Interactive Graphs:** Built with Plotly.js for zooming and filtering.
 *   **ML Insights:** Visualize how the AI heuristic compares to standard mathematical heuristics.
+  
+   # 🚀 [CLICK HERE TO PLAY WITH THE LIVE DEMO](https://amkhodaei83.github.io/pathfinding-benchmarks/final_output/)
 
 ### 3. Machine Learning Integration
 *   **Data Generation:** The Java backend generates training datasets from solved maps.
